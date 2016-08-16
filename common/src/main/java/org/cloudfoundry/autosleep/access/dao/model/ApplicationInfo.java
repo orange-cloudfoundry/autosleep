@@ -138,12 +138,12 @@ public class ApplicationInfo {
                            String messageType,
                            String sourceId,
                            String sourceName,
-                           long timestamp) {
+                           Instant timestamp) {
                 this.setMessage(message);
                 this.messageType = messageType;
                 this.sourceId = sourceId;
                 this.sourceName = sourceName;
-                this.timestamp = Instant.ofEpochMilli(timestamp);
+                this.timestamp = timestamp;
             }
 
             private void setMessage(String message) {
