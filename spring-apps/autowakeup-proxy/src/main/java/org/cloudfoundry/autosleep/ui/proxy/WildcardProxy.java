@@ -130,7 +130,7 @@ public class WildcardProxy {
             return new ResponseEntity<>("Sorry, but this page doesn't exist! ", HttpStatus.NOT_FOUND);
         }
 
-        boolean appIsReadyToTakeTraffic = isAppIsReadyToTakeTraffic(mapEntries);
+        boolean appIsReadyToTakeTraffic = startSleepingAppsIfAny(mapEntries);
 
 
         //if exist, to prevent exception when two instances started the app in //
@@ -150,7 +150,12 @@ public class WildcardProxy {
 
     }
 
-    boolean isAppIsReadyToTakeTraffic(List<ProxyMapEntry> mapEntries) throws CloudFoundryException, InterruptedException {
+    /**
+     * Starts apps if needed
+     * @param mapEntries
+     * @return true if apps are started and are ready to take traffic. False otherwise.
+     */
+    boolean startSleepingAppsIfAny(List<ProxyMapEntry> mapEntries) throws CloudFoundryException, InterruptedException {
         boolean appIsReadyToTakeTraffic = true;
         for (ProxyMapEntry mapEntry : mapEntries) {
             String appId = mapEntry.getAppId();

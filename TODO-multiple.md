@@ -1,3 +1,4 @@
 - test isreadytotaketraffic method
 - test different cases with multiple apps (starting/not starting)
 - refactor wildcardproxytest & impl with less mocks and duplication
+- handle db schema change
