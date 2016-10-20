@@ -28,11 +28,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface ProxyMapEntryRepository extends JpaRepository<ProxyMapEntry, String> {
 
     @Modifying
     @Transactional
     @Query("DELETE FROM ProxyMapEntry e WHERE e.host = :host")
     void deleteIfExists(@Param("host") String host);
+
+    List<ProxyMapEntry> findByHost(String host);
 
 }

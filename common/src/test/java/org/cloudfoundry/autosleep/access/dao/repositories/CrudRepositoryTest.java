@@ -20,6 +20,7 @@
 package org.cloudfoundry.autosleep.access.dao.repositories;
 
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.Setter;
 import org.junit.Test;
 import org.springframework.data.repository.CrudRepository;
@@ -39,6 +40,7 @@ import static org.junit.Assert.assertThat;
 public abstract class CrudRepositoryTest<T> {
 
     @Setter(AccessLevel.PROTECTED)
+    @Getter
     private CrudRepository<T, String> dao;
 
     protected abstract T build(String id);

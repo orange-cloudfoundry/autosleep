@@ -25,11 +25,17 @@ import org.cloudfoundry.autosleep.access.dao.model.ProxyMapEntry;
 import org.cloudfoundry.autosleep.util.ApplicationConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -59,6 +65,22 @@ public abstract class ProxyMapEntryRepositoryTest extends CrudRepositoryTest<Pro
     public void setAndClearDao() {
         setDao(repository);
         repository.deleteAll();
+    }
+
+    @Test
+    public void test_findByHost() {
+        //given
+        ProxyMapEntryRepository entryRepository = (ProxyMapEntryRepository) getDao();
+        ProxyMapEntry a = new ProxyMapEntry("host.cfapp.io", "1");
+        ProxyMapEntry b = new ProxyMapEntry("host.cfapp.io", "2");
+        ProxyMapEntry c = new ProxyMapEntry("otherhost.cfapp.io", "3");
+        entryRepository.save(asList(a, b, c));
+
+        //when
+        List<ProxyMapEntry> entries = entryRepository.findByHost("host.cfapp.io");
+
+        //then
+        assertThat(entries, is(equalTo(asList(a, b))));
     }
 
 }

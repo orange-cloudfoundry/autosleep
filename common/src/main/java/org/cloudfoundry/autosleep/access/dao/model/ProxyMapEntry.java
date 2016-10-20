@@ -40,14 +40,14 @@ import javax.persistence.Id;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PUBLIC)
 @ToString
-@EqualsAndHashCode(of = "host")
+@EqualsAndHashCode()
 @Entity
 public class ProxyMapEntry {
 
-    @Id
     @JsonProperty
     private String host;
 
+    @Id
     @JsonProperty
     private String appId;
     
