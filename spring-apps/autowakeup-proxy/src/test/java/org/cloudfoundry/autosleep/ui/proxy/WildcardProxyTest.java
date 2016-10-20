@@ -46,6 +46,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestTemplate;
 
+import static java.util.Arrays.asList;
 import static org.cloudfoundry.autosleep.ui.proxy.WildcardProxy.HEADER_FORWARDED;
 import static org.cloudfoundry.autosleep.ui.proxy.WildcardProxy.HEADER_HOST;
 import static org.cloudfoundry.autosleep.ui.proxy.WildcardProxy.HEADER_PROTOCOL;
@@ -96,6 +97,7 @@ public class WildcardProxyTest {
     }
 
     private static final String APP_ID = "test-app-id";
+    private static final String APP_ID2 = "other-test-app-id";
 
     private static final String BODY_VALUE = "test-body";
 
@@ -143,13 +145,53 @@ public class WildcardProxyTest {
     @Test
     public void should_forward_traffic_if_application_restarted() throws Exception {
         //GIVEN that we have a map route in database (for stopped app)
-        when(proxyMap.findOne(HOST_TEST_VALUE)).thenReturn(ProxyMapEntry.builder()
-                .appId(APP_ID)
-                .host(HOST_TEST_VALUE)
-                .build());
+        when_find_by_host_returns(APP_ID, HOST_TEST_VALUE);
         when(cfApi.getApplicationState(APP_ID)).thenReturn(CloudFoundryAppState.STARTED);
         // is app running will return false the two first times
         when(cfApi.isAppRunning(APP_ID)).thenReturn(true);
+        //the return body will return the expected body
+        mockRemoteExchange(HttpStatus.OK, MediaType.TEXT_PLAIN, BODY_VALUE);
+
+        //WHEN an incoming message target this same route
+        this.mockMvc
+                .perform(get("http://localhost/anything")
+                        .header(HEADER_HOST, HOST_TEST_VALUE)
+                        .header(HEADER_PROTOCOL, PROTOCOL_TEST_VALUE))
+                //then status code is ok
+                .andExpect(status().isOk())
+                //and the content type remains the same
+                .andExpect(content().contentType(TEXT_PLAIN))
+                // and the body is correct
+                .andExpect(content().string(BODY_VALUE));
+
+        // and start was not called
+        verify(cfApi, never()).startApplication(APP_ID);
+        // and we never wait for anything
+        verify(timeManager, never()).sleep(Config.PERIOD_BETWEEN_STATE_CHECKS_DURING_RESTART);
+        //and we removed the application from repository
+        verify(proxyMap, times(1)).deleteIfExists(HOST_TEST_VALUE);
+    }
+
+    @Test
+    public void should_forward_traffic_if_multiple_applications_restarted() throws Exception {
+        //GIVEN that we have a map route in database (for stopped app)
+        when(proxyMap.findByHost(HOST_TEST_VALUE)).thenReturn(asList(
+                ProxyMapEntry.builder()
+                .appId(APP_ID2)
+                .host(HOST_TEST_VALUE)
+                .build(),
+                ProxyMapEntry.builder()
+                        .appId(APP_ID)
+                        .host(HOST_TEST_VALUE)
+                        .build()
+                ));
+        when(cfApi.getApplicationState(APP_ID)).thenReturn(CloudFoundryAppState.STARTED);
+        // is app running will return false the two first times
+        when(cfApi.getApplicationState(APP_ID2)).thenReturn(CloudFoundryAppState.STARTED);
+        // is app running will return false the two first times
+        when(cfApi.isAppRunning(APP_ID)).thenReturn(true);
+        // is app running will return false the two first times
+        when(cfApi.isAppRunning(APP_ID2)).thenReturn(true);
         //the return body will return the expected body
         mockRemoteExchange(HttpStatus.OK, MediaType.TEXT_PLAIN, BODY_VALUE);
 
@@ -211,10 +253,7 @@ public class WildcardProxyTest {
     @Test
     public void should_send_internal_error_on_remote_api_error() throws Exception {
         //GIVEN that we have a map route in database (for started app)
-        when(proxyMap.findOne(HOST_TEST_VALUE)).thenReturn(ProxyMapEntry.builder()
-                .appId(APP_ID)
-                .host(HOST_TEST_VALUE)
-                .build());
+        when_find_by_host_returns(APP_ID, HOST_TEST_VALUE);
         when(cfApi.getApplicationState(APP_ID)).thenThrow(CloudFoundryException.class);
         this.mockMvc
                 .perform(get("http://localhost/anything")
@@ -227,10 +266,7 @@ public class WildcardProxyTest {
     @Test
     public void should_send_service_unavailable_if_application_is_restarting() throws Exception {
         //GIVEN that we have a map route in database (for started app)
-        when(proxyMap.findOne(HOST_TEST_VALUE)).thenReturn(ProxyMapEntry.builder()
-                .appId(APP_ID)
-                .host(HOST_TEST_VALUE)
-                .build());
+        when_find_by_host_returns(APP_ID, HOST_TEST_VALUE);
         when(cfApi.getApplicationState(APP_ID)).thenReturn(CloudFoundryAppState.STARTED);
         // is app running returns true
         when(cfApi.isAppRunning(APP_ID)).thenReturn(false);
@@ -249,10 +285,7 @@ public class WildcardProxyTest {
     @Test
     public void should_start_a_stopped_application_and_return_the_body() throws Exception {
         //GIVEN that we have a map route in database (for stopped app)
-        when(proxyMap.findOne(HOST_TEST_VALUE)).thenReturn(ProxyMapEntry.builder()
-                .appId(APP_ID)
-                .host(HOST_TEST_VALUE)
-                .build());
+        when_find_by_host_returns(APP_ID, HOST_TEST_VALUE);
         when(cfApi.getApplicationState(APP_ID)).thenReturn(CloudFoundryAppState.STOPPED);
         // is app running will return false the two first times
         when(cfApi.isAppRunning(APP_ID)).thenReturn(false)
@@ -278,6 +311,15 @@ public class WildcardProxyTest {
         verify(timeManager, times(3)).sleep(Config.PERIOD_BETWEEN_STATE_CHECKS_DURING_RESTART);
         //and we removed the application from repository
         verify(proxyMap, times(1)).deleteIfExists(HOST_TEST_VALUE);
+    }
+
+    private void when_find_by_host_returns(String appId, String hostTestValue) {
+        when(proxyMap.findByHost(hostTestValue)).thenReturn(asList(
+                ProxyMapEntry.builder()
+                        .appId(appId)
+                        .host(hostTestValue)
+                        .build()
+        ));
     }
 
 }

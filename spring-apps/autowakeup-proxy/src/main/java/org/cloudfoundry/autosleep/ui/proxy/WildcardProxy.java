@@ -124,39 +124,54 @@ public class WildcardProxy {
             log.error("We've already forwarded this traffic, this should not happen");
             return new ResponseEntity<>("Infinite loop forwarding error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        ProxyMapEntry mapEntry = proxyMap.findOne(targetHost);
+        List<ProxyMapEntry> mapEntries = proxyMap.findByHost(targetHost);
 
-        if (mapEntry == null) {
+        if (mapEntries.isEmpty()) {
             return new ResponseEntity<>("Sorry, but this page doesn't exist! ", HttpStatus.NOT_FOUND);
         }
 
-        String appId = mapEntry.getAppId();
+        boolean appIsReadyToTakeTraffic = isAppIsReadyToTakeTraffic(mapEntries);
 
-        String applicationState = cfApi.getApplicationState(appId);
-        if (CloudFoundryAppState.STARTED.equals(applicationState) && !cfApi.isAppRunning(appId)) {
-            log.info("Rejecting traffic for starting app [{}]", appId);
+
+        //if exist, to prevent exception when two instances started the app in //
+        if (appIsReadyToTakeTraffic) {
+            proxyMap.deleteIfExists(targetHost);
+            String protocol = incoming.getHeaders().get(HEADER_PROTOCOL).get(0);
+            URI uri = URI.create(protocol + "://" + targetHost + path);
+            RequestEntity<?> outgoing = getOutgoingRequest(incoming, uri);
+            log.debug("Outgoing Request: {}", outgoing);
+
+            //if "outgoing" point to a 404, this will trigger a 500. Is this really a pb?
+            return this.restTemplate.exchange(outgoing, byte[].class);
+        } else  {
             return new ResponseEntity<>("The app is starting, please retry in few seconds", HttpStatus
                     .SERVICE_UNAVAILABLE);
-        } else if (CloudFoundryAppState.STOPPED.equals(applicationState)) {
-            log.info("Starting app [{}]", appId);
-            cfApi.startApplication(appId);
-            timeManager.sleep(Config.PERIOD_BETWEEN_STATE_CHECKS_DURING_RESTART);
         }
-        while (!cfApi.isAppRunning(appId)) {
-            log.debug("waiting for app {} restart...", appId);
-            timeManager.sleep(Config.PERIOD_BETWEEN_STATE_CHECKS_DURING_RESTART);
-            //TODO add timeout that would log error and reset mapEntry.isStarting to false
+
+    }
+
+    boolean isAppIsReadyToTakeTraffic(List<ProxyMapEntry> mapEntries) throws CloudFoundryException, InterruptedException {
+        boolean appIsReadyToTakeTraffic = true;
+        for (ProxyMapEntry mapEntry : mapEntries) {
+            String appId = mapEntry.getAppId();
+
+            String applicationState = cfApi.getApplicationState(appId);
+            if (CloudFoundryAppState.STARTED.equals(applicationState) && !cfApi.isAppRunning(appId)) {
+                log.info("Rejecting traffic for starting app [{}]", appId);
+                appIsReadyToTakeTraffic = false;
+                break;
+            } else if (CloudFoundryAppState.STOPPED.equals(applicationState)) {
+                log.info("Starting app [{}]", appId);
+                cfApi.startApplication(appId);
+                timeManager.sleep(Config.PERIOD_BETWEEN_STATE_CHECKS_DURING_RESTART);
+            }
+            while (!cfApi.isAppRunning(appId)) {
+                log.debug("waiting for app {} restart...", appId);
+                timeManager.sleep(Config.PERIOD_BETWEEN_STATE_CHECKS_DURING_RESTART);
+                //TODO add timeout that would log error and reset mapEntry.isStarting to false
+            }
         }
-        //if exist, to prevent exception when two instances started the app in //
-        proxyMap.deleteIfExists(mapEntry.getHost());
-        String protocol = incoming.getHeaders().get(HEADER_PROTOCOL).get(0);
-        URI uri = URI.create(protocol + "://" + targetHost + path);
-        RequestEntity<?> outgoing = getOutgoingRequest(incoming, uri);
-        log.debug("Outgoing Request: {}", outgoing);
-
-        //if "outgoing" point to a 404, this will trigger a 500. Is this really a pb?
-        return this.restTemplate.exchange(outgoing, byte[].class);
-
+        return appIsReadyToTakeTraffic;
     }
 
 }
