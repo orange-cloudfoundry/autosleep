@@ -38,7 +38,7 @@ import lombok.ToString;
 @EqualsAndHashCode(of = {"organizationGuid"})
 @Entity
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EnrolledOrganizationConfig {
+public class OrgEnrollmentConfig {
     
     @Id
     @JsonProperty

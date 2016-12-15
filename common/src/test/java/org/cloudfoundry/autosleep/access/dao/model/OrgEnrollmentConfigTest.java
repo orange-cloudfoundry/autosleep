@@ -7,20 +7,22 @@ import java.time.Duration;
 import java.util.regex.Pattern;
 
 
-public class EnrolledOrganizationConfigTest {
+public class OrgEnrollmentConfigTest {
 
     private static final Duration duration = Duration.parse("PT2M");
 
 
     @Test
     public void supports_default_orgs_enrollment_use_cases_from_environment_variables() {
-        //Given
-        EnrolledOrganizationConfig.builder().organizationGuid("default-org-guid")
+        //Given autosleep configured with default,
+        //when a new orgs gets scanned
+        //then it gets autoenrolled
+        OrgEnrollmentConfig orgEnrollmentConfig = OrgEnrollmentConfig.builder().organizationGuid("default-org-guid")
                 .state(Config.OrgEnrollmentParameters.EnrollmentState.auto_enrolled)
                 .idleDuration(aDefaultDuration())
-                .defaultAutoEnrollment(Config.ServiceInstanceParameters.Enrollment.forced);
+                .defaultAutoEnrollment(Config.ServiceInstanceParameters.Enrollment.forced).build();
 
-        //when a new space gets auto-enrolled in this org
+        //and when a new space gets auto-enrolled in this org
 
         //then generated space enrollment config is
         SpaceEnrollerConfig.builder()
@@ -35,7 +37,7 @@ public class EnrolledOrganizationConfigTest {
         //when receiving an enrollement request from API
 
         //then resulting org config is
-        EnrolledOrganizationConfig optedOutOrgConfig = EnrolledOrganizationConfig.builder().organizationGuid("trial-non-payong-org-guid")
+        OrgEnrollmentConfig optedOutOrgConfig = OrgEnrollmentConfig.builder().organizationGuid("trial-non-payong-org-guid")
                 .state(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_enrolled)
                 .defaultAutoEnrollment(Config.ServiceInstanceParameters.Enrollment.forced).build();//will be transient-opt-outs soon
     }
@@ -44,17 +46,17 @@ public class EnrolledOrganizationConfigTest {
     @Test
     public void supports_sequential_optin_optouts() {
         //given an org enrolled from API
-        EnrolledOrganizationConfig enrolledOrganizationConfig = EnrolledOrganizationConfig.builder().organizationGuid("trial-non-payong-org-guid")
+        OrgEnrollmentConfig orgEnrollmentConfig = OrgEnrollmentConfig.builder().organizationGuid("trial-non-payong-org-guid")
                 .state(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_enrolled)
                 .defaultAutoEnrollment(Config.ServiceInstanceParameters.Enrollment.forced) //will be transient-opt-outs soon
                 .build();
 
         //when API request opt it out
-        enrolledOrganizationConfig.setState(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_opted_out);
+        orgEnrollmentConfig.setState(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_opted_out);
         //then new spaces won't be enrolled anymore
 
         //and when API request opt it in
-        enrolledOrganizationConfig.setState(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_enrolled);
+        orgEnrollmentConfig.setState(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_enrolled);
         //then new spaces will be automatically enrolled
     }
 
@@ -62,7 +64,7 @@ public class EnrolledOrganizationConfigTest {
     @Test
     public void supports_private_service_provider_use_case() {
         //given the service service provider desire to leave app teams possibly to opt-outs
-        EnrolledOrganizationConfig.builder().organizationGuid("org-for-division-1")
+        OrgEnrollmentConfig.builder().organizationGuid("org-for-division-1")
                 .state(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_enrolled)
                 .excludeSpaceFromAutoEnrollment(Pattern.compile(".*-prod"))
                 .defaultAutoEnrollment(Config.ServiceInstanceParameters.Enrollment.standard);
@@ -79,7 +81,7 @@ public class EnrolledOrganizationConfigTest {
     public void supports_free_tier_public_service_provider_use_case() {
         //given the desired of a public free tier operator to assign a transient-opts-outs default value.
 
-        EnrolledOrganizationConfig.builder().organizationGuid("a-free-tier-org-guid")
+        OrgEnrollmentConfig.builder().organizationGuid("a-free-tier-org-guid")
                 .excludeSpaceFromAutoEnrollment(Pattern.compile(".*-premium"))
                 .defaultAutoEnrollment(Config.ServiceInstanceParameters.Enrollment.forced); //will be transient-opt-outs soon
 

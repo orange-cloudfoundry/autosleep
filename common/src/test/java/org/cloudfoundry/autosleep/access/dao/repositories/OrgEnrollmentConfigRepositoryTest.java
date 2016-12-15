@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.regex.Pattern;
 
 import org.cloudfoundry.autosleep.access.dao.config.RepositoryConfig;
-import org.cloudfoundry.autosleep.access.dao.model.EnrolledOrganizationConfig;
+import org.cloudfoundry.autosleep.access.dao.model.OrgEnrollmentConfig;
 import org.cloudfoundry.autosleep.config.Config;
 import org.cloudfoundry.autosleep.util.ApplicationConfiguration;
 import org.junit.After;
@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {ApplicationConfiguration.class, RepositoryConfig.class, EnableJpaConfiguration.class})
-public abstract class EnrolledOrganizationConfigRepositoryTest extends CrudRepositoryTest<EnrolledOrganizationConfig> {
+public abstract class OrgEnrollmentConfigRepositoryTest extends CrudRepositoryTest<OrgEnrollmentConfig> {
  
     private static final Duration duration = Duration.parse("PT2M");
     private Pattern excludePattern = Pattern.compile("premium.*");
@@ -33,8 +33,8 @@ public abstract class EnrolledOrganizationConfigRepositoryTest extends CrudRepos
     private EnrolledOrganizationConfigRepository enrolledOrganizationConfigRepository;
     
     @Override
-    protected EnrolledOrganizationConfig build(String orgId) {
-        return EnrolledOrganizationConfig.builder()
+    protected OrgEnrollmentConfig build(String orgId) {
+        return OrgEnrollmentConfig.builder()
                 .organizationGuid(orgId)
                 .excludeSpaceFromAutoEnrollment(excludePattern)
                 .idleDuration(duration)
@@ -44,7 +44,7 @@ public abstract class EnrolledOrganizationConfigRepositoryTest extends CrudRepos
     }
     
     @Override
-    protected void compareReloaded(EnrolledOrganizationConfig original, EnrolledOrganizationConfig reloaded) {
+    protected void compareReloaded(OrgEnrollmentConfig original, OrgEnrollmentConfig reloaded) {
         assertEquals(reloaded.getOrganizationGuid(), original.getOrganizationGuid());
         assertEquals(reloaded.getIdleDuration(), original.getIdleDuration());
         assertEquals(reloaded.getExcludeSpaceFromAutoEnrollment().pattern(), original.getExcludeSpaceFromAutoEnrollment().pattern());

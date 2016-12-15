@@ -241,7 +241,7 @@ databaseChangeLog:
     author: SAP
     changes:
     - createTable:
-        tableName: enrolled_organization_config
+        tableName: org_enrollment_config
         columns:
         - column:
             name: organization_guid
