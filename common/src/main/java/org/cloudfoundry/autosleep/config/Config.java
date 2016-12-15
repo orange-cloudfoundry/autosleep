@@ -115,8 +115,10 @@ public interface Config {
     }
     
     interface OrgEnrollmentParameters {
-        enum EnrolledState {
-            backoffice_enrolled, backoffice_opted_out
+        enum EnrollmentState {
+            backoffice_enrolled,
+            backoffice_opted_out,
+            auto_enrolled
         }
     }
 

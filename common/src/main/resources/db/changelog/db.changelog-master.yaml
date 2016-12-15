@@ -244,7 +244,7 @@ databaseChangeLog:
         tableName: enrolled_organization_config
         columns:
         - column:
-            name: organization_id
+            name: organization_guid
             type: VARCHAR(255)
             constraints:
                 primaryKey: true
@@ -252,10 +252,10 @@ databaseChangeLog:
             name: idle_duration
             type: BLOB
         - column:
-            name: exclude_from_auto_enrollment
+            name: exclude_space_from_auto_enrollment
             type: BLOB
         - column:
-            name: auto_enrollment
+            name: default_auto_enrollment
             type: INT
         - column:
             name: state

@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class EnrolledOrganizationConfigRepositoryTest extends CrudRepositoryTest<EnrolledOrganizationConfig> {
  
     private static final Duration duration = Duration.parse("PT2M");
-    private Pattern excludePattern = Pattern.compile(".*");
+    private Pattern excludePattern = Pattern.compile("premium.*");
     
     @Autowired
     private EnrolledOrganizationConfigRepository enrolledOrganizationConfigRepository;
@@ -35,20 +35,20 @@ public abstract class EnrolledOrganizationConfigRepositoryTest extends CrudRepos
     @Override
     protected EnrolledOrganizationConfig build(String orgId) {
         return EnrolledOrganizationConfig.builder()
-                .organizationId(orgId)
-                .excludeFromAutoEnrollment(excludePattern)
+                .organizationGuid(orgId)
+                .excludeSpaceFromAutoEnrollment(excludePattern)
                 .idleDuration(duration)
-                .state(Config.OrgEnrollmentParameters.EnrolledState.backoffice_enrolled)
-                .autoEnrollment(Config.ServiceInstanceParameters.Enrollment.standard)
+                .state(Config.OrgEnrollmentParameters.EnrollmentState.backoffice_enrolled)
+                .defaultAutoEnrollment(Config.ServiceInstanceParameters.Enrollment.standard)
                 .build();
     }
     
     @Override
     protected void compareReloaded(EnrolledOrganizationConfig original, EnrolledOrganizationConfig reloaded) {
-        assertEquals(reloaded.getOrganizationId(), original.getOrganizationId());
+        assertEquals(reloaded.getOrganizationGuid(), original.getOrganizationGuid());
         assertEquals(reloaded.getIdleDuration(), original.getIdleDuration());
-        assertEquals(reloaded.getExcludeFromAutoEnrollment().pattern(), original.getExcludeFromAutoEnrollment().pattern());
-        assertEquals(reloaded.getAutoEnrollment(), original.getAutoEnrollment());
+        assertEquals(reloaded.getExcludeSpaceFromAutoEnrollment().pattern(), original.getExcludeSpaceFromAutoEnrollment().pattern());
+        assertEquals(reloaded.getDefaultAutoEnrollment(), original.getDefaultAutoEnrollment());
         assertEquals(reloaded.getState(), original.getState());
         
         assertThat("Two objects should be equal", reloaded, is(equalTo(original)));
